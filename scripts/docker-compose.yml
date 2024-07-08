@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: sqlserver
+    environment:
+      SA_PASSWORD: "sqlserverPass10"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - ./init.sql:/usr/src/app/init.sql
+    networks:
+      - app-network
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql-tools
+    depends_on:
+      - sqlserver
+    volumes:
+      - ./init.sql:/usr/src/app/init.sql
+    entrypoint: /bin/bash -c "sleep 30s && /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P sqlserverPass10 -i /usr/src/app/init.sql"
+    networks:
+      - app-network
+
+  appidentity:
+    build:
+      context: ../IdentityApi
+      dockerfile: Dockerfile
+    depends_on:
+      - sqlserver-init
+    ports:
+      - "5001:80"
+    environment:
+      - ConnectionStrings__MoviesDBConnStr=Server=sqlserver,1433;Database=MoviesDB;User Id=sa;Password=sqlserverPass10;TrustServerCertificate=True;
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    networks:
+      - app-network
+
+  appmovie:
+    build:
+      context: ../MovieCategoriesApi
+      dockerfile: Dockerfile
+    depends_on:
+      - sqlserver-init
+      - appidentity
+    ports:
+      - "5002:80"
+    environment:
+      - ConnectionStrings__MoviesDBConnStr=Server=sqlserver,1433;Database=MoviesDB;User Id=sa;Password=sqlserverPass10;TrustServerCertificate=True;
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - AuthApi=http://appidentity:80
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

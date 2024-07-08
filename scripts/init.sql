@@ -1,0 +1,25 @@
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'MoviesDB')
+BEGIN
+    CREATE DATABASE MoviesDB;
+END
+GO
+
+USE MoviesDB;
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ApplicationUser')
+BEGIN
+    CREATE TABLE ApplicationUser (
+		Id INT PRIMARY KEY IDENTITY(1,1),
+		Email NVARCHAR(255) NOT NULL UNIQUE,
+		PasswordHash NVARCHAR(256) NOT NULL,
+		Salt NVARCHAR(24) NOT NULL
+	);
+
+    CREATE TABLE MovieCategory (
+		Id INT PRIMARY KEY IDENTITY(1,1),
+		Category NVARCHAR(100) NOT NULL UNIQUE,
+		Description NVARCHAR(255)
+	);
+END
+GO
